@@ -20,11 +20,7 @@ _PRIORITY_ORDER: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
 
 @dataclass
 class ScheduleResult:
-    """
-    Returned by Scheduler.generate_plan().
-    Separates scheduled tasks from excluded ones and carries human-readable
-    reasons for exclusions — fulfilling the README requirement to explain the plan.
-    """
+    """Holds the output of generate_plan(): scheduled tasks and excluded tasks with reasons."""
 
     scheduled: list["Task"] = field(default_factory=list)
     excluded: list[tuple["Task", str]] = field(default_factory=list)  # (task, reason)
@@ -115,11 +111,7 @@ class Owner:
 # ---------------------------------------------------------------------------
 
 class Scheduler:
-    """
-    Planning brain for PawPal+.
-    Retrieves tasks via Owner.get_all_tasks(), then organises them into a
-    daily schedule that fits within the owner's available time.
-    """
+    """Organises tasks from Owner.get_all_tasks() into a daily plan that fits available time."""
 
     def __init__(self, available_minutes: int) -> None:
         self.available_minutes = available_minutes
@@ -149,12 +141,7 @@ class Scheduler:
     # ------------------------------------------------------------------
 
     def check_conflicts(self, tasks: list[Task]) -> list[str]:
-        """
-        Detect scheduling problems.
-        Currently checks:
-          - Total duration of pending tasks exceeds available_minutes.
-        Returns a list of human-readable warning strings (empty = no issues).
-        """
+        """Return warning strings when total pending task time exceeds available_minutes."""
         warnings: list[str] = []
         pending = [t for t in tasks if t.status == "pending"]
         total = sum(t.duration_minutes for t in pending)
@@ -171,19 +158,7 @@ class Scheduler:
     # ------------------------------------------------------------------
 
     def generate_plan(self, tasks: list[Task]) -> ScheduleResult:
-        """
-        Produce an ordered daily plan that fits within available_minutes.
-
-        Strategy:
-          1. Ignore already-completed tasks.
-          2. Sort remaining tasks by priority (high first), then by duration
-             (shortest first) as a tiebreaker — maximises tasks completed.
-          3. Greedily add tasks until available time is exhausted.
-
-        Returns a ScheduleResult with:
-          - scheduled: tasks that fit in the plan (in order)
-          - excluded:  (task, reason) pairs for tasks that were left out
-        """
+        """Sort pending tasks by priority then duration and greedily fill available_minutes."""
         result = ScheduleResult()
         time_used = 0
 
