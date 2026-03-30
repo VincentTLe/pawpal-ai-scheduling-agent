@@ -45,6 +45,34 @@ Beyond the basic daily plan, `pawpal_system.py` includes several algorithms that
 | **Time-overlap detection** | `detect_time_overlaps` | Uses a sort-then-sweep algorithm (O(n log n)) to find pairs of tasks whose scheduled windows overlap, returning human-readable warnings without crashing |
 | **Multi-level conflict check** | `check_conflicts` | Combines four independent checks: total time overflow, single task too long to fit, high-priority tasks at risk of exclusion, and time-window overlaps |
 
+## Testing PawPal+
+
+Run the full test suite with:
+
+```bash
+python -m pytest
+```
+
+### What the tests cover
+
+| Category | Tests | Description |
+|---|---|---|
+| **Task lifecycle** | `test_mark_complete_*`, `test_update_changes_fields` | Verifies that `mark_complete()` flips status to `completed` (and is idempotent), and that `update()` only overwrites supplied fields |
+| **Pet task management** | `test_add_task_*` | Confirms that adding tasks increases the pet's task list, auto-stamps the pet name on each task, and supports multiple tasks |
+| **Scheduler — basic plan** | `test_generate_plan_*`, `test_completed_tasks_excluded_*` | Checks that the generated plan respects `available_minutes`, orders tasks high → medium → low priority, and skips already-completed tasks |
+| **Owner aggregation** | `test_owner_get_all_tasks_*` | Ensures `Owner.get_all_tasks()` combines tasks from all pets |
+| **Time sorting** | `test_sort_by_time_*` | Validates chronological HH:MM ordering and that tasks without a `start_time` sink to the end |
+| **Recurrence spawning** | `test_complete_daily_*`, `test_complete_weekly_*`, `test_complete_nonrecurring_*` | Confirms daily tasks advance `due_date` by 1 day, weekly by 7 days, and non-recurring tasks spawn nothing |
+| **Overlap detection** | `test_detect_overlap_*`, `test_no_overlap_*`, `test_completed_tasks_ignored_*` | Verifies the sweep algorithm catches same-start and partial overlaps, allows back-to-back tasks, and ignores completed tasks |
+
+**Total: 20 unit tests** across `Task`, `Pet`, `Owner`, and `Scheduler`.
+
+### Confidence Level
+
+**★★★★☆ (4 / 5)**
+
+The core scheduling logic — priority ordering, time-budget enforcement, recurrence spawning, and overlap detection — is thoroughly covered by focused, deterministic unit tests. The suite catches regressions in all critical paths. A full 5 stars would require additional edge-case coverage (e.g., empty task lists, invalid inputs, and boundary conditions on available time).
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
