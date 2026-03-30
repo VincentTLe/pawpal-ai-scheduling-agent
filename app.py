@@ -1,12 +1,11 @@
 import streamlit as st
+from datetime import date
 from pawpal_system import Owner, Pet, Task, Scheduler
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 # ---------------------------------------------------------------------------
 # Session state initialisation
-# Streamlit reruns the entire script on every interaction, so we guard each
-# key with "if not in" to avoid resetting objects that already exist.
 # ---------------------------------------------------------------------------
 if "owner" not in st.session_state:
     st.session_state.owner = Owner(name="")
@@ -40,7 +39,6 @@ st.divider()
 
 # ---------------------------------------------------------------------------
 # Section 2 — Add a pet
-# Calls owner.add_pet() — the Pet object lives inside the Owner in session_state
 # ---------------------------------------------------------------------------
 st.subheader("2. Add a Pet")
 
@@ -59,10 +57,9 @@ if submitted_pet:
             species=new_pet_species,
             health_notes=new_pet_notes.strip(),
         )
-        owner.add_pet(new_pet)       # <-- Pet object stored inside Owner
+        owner.add_pet(new_pet)
         st.success(f"Added pet: {new_pet.name} ({new_pet.species})")
 
-# Show current pets
 if owner.pets:
     st.write("**Your pets:**")
     for p in owner.pets:
@@ -75,7 +72,6 @@ st.divider()
 
 # ---------------------------------------------------------------------------
 # Section 3 — Add a task to a pet
-# Calls pet.add_task() — the Task object lives inside the chosen Pet
 # ---------------------------------------------------------------------------
 st.subheader("3. Add a Task")
 
@@ -89,6 +85,14 @@ else:
         task_name = st.text_input("Task name", value="Morning walk")
         task_duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
         task_priority = st.selectbox("Priority", ["high", "medium", "low"])
+
+        col1, col2 = st.columns(2)
+        with col1:
+            task_time_of_day = st.selectbox("Time of day", ["morning", "afternoon", "evening", "anytime"])
+        with col2:
+            task_start_time = st.text_input("Start time (HH:MM, optional)", placeholder="07:30")
+
+        task_recurrence = st.selectbox("Recurrence", ["none", "daily", "weekly"])
         submitted_task = st.form_submit_button("Add task")
 
     if submitted_task:
@@ -100,24 +104,49 @@ else:
                 name=task_name.strip(),
                 duration_minutes=int(task_duration),
                 priority=task_priority,
+                time_of_day=task_time_of_day,
+                start_time=task_start_time.strip(),
+                recurrence=task_recurrence,
             )
-            target_pet.add_task(new_task)   # <-- Task stored inside Pet; pet_name auto-stamped
+            target_pet.add_task(new_task)
             st.success(f"Added '{new_task.name}' to {target_pet.name}")
 
-    # Show all tasks across all pets
+    # --- Task display with pending / completed tabs ---
     all_tasks = owner.get_all_tasks()
     if all_tasks:
-        st.write("**All current tasks:**")
-        st.table([
-            {
-                "Pet": t.pet_name,
-                "Task": t.name,
-                "Duration (min)": t.duration_minutes,
-                "Priority": t.priority,
-                "Status": t.status,
-            }
-            for t in all_tasks
-        ])
+        scheduler_display = Scheduler(available_minutes=480)
+        pending_tasks = scheduler_display.filter_by_status(all_tasks, "pending")
+        completed_tasks = scheduler_display.filter_by_status(all_tasks, "completed")
+
+        tab_pending, tab_completed = st.tabs(
+            [f"Pending ({len(pending_tasks)})", f"Completed ({len(completed_tasks)})"]
+        )
+
+        def _task_rows(tasks):
+            sorted_tasks = Scheduler(available_minutes=480).sort_by_time(tasks)
+            return [
+                {
+                    "Pet": t.pet_name,
+                    "Task": t.name,
+                    "Start": t.start_time or "—",
+                    "Duration (min)": t.duration_minutes,
+                    "Priority": t.priority,
+                    "Recurrence": t.recurrence,
+                }
+                for t in sorted_tasks
+            ]
+
+        with tab_pending:
+            if pending_tasks:
+                st.table(_task_rows(pending_tasks))
+            else:
+                st.info("No pending tasks.")
+
+        with tab_completed:
+            if completed_tasks:
+                st.table(_task_rows(completed_tasks))
+            else:
+                st.info("No completed tasks yet.")
     else:
         st.info("No tasks yet.")
 
@@ -125,7 +154,6 @@ st.divider()
 
 # ---------------------------------------------------------------------------
 # Section 4 — Generate schedule
-# Calls Scheduler.generate_plan() with owner.get_all_tasks()
 # ---------------------------------------------------------------------------
 st.subheader("4. Generate Today's Schedule")
 
@@ -140,29 +168,68 @@ if st.button("Generate schedule"):
     else:
         scheduler = Scheduler(available_minutes=int(available_minutes))
         plan = scheduler.generate_plan(all_tasks)
-        warnings = scheduler.check_conflicts(all_tasks)
+        conflicts = scheduler.check_conflicts(all_tasks)
 
-        if warnings:
-            for w in warnings:
-                st.warning(w)
+        # --- Conflict warnings grouped by severity ---
+        if conflicts:
+            overlap_warnings = [w for w in conflicts if w.startswith("TIME OVERLAP")]
+            other_warnings = [w for w in conflicts if not w.startswith("TIME OVERLAP")]
 
+            if other_warnings:
+                st.warning("**Scheduling issues detected:**")
+                for w in other_warnings:
+                    st.warning(w)
+
+            if overlap_warnings:
+                st.error("**Time conflicts found — two or more tasks are scheduled at the same time:**")
+                for w in overlap_warnings:
+                    # Extract just the task names for a friendly message
+                    st.error(w)
+                st.info(
+                    "**Tip:** Open the task form and adjust the Start Time of the conflicting tasks "
+                    "so their windows do not overlap. For example, if Walk starts at 07:00 for 30 min, "
+                    "the next task should start at 07:30 or later."
+                )
+
+        # --- Schedule result ---
         if plan.scheduled:
             total_time = sum(t.duration_minutes for t in plan.scheduled)
-            st.success(f"Scheduled {len(plan.scheduled)} task(s) using {total_time} of {available_minutes} min.")
-            st.write("**Scheduled tasks (in order):**")
-            st.table([
-                {
-                    "Pet": t.pet_name,
-                    "Task": t.name,
-                    "Duration (min)": t.duration_minutes,
-                    "Priority": t.priority,
-                }
-                for t in plan.scheduled
-            ])
+            st.success(
+                f"Scheduled {len(plan.scheduled)} task(s) — "
+                f"{total_time} of {available_minutes} min used."
+            )
+
+            # Display sorted by clock time so the owner sees a chronological to-do list
+            sorted_plan = scheduler.sort_by_time(plan.scheduled)
+            timed = [t for t in sorted_plan if t.start_time]
+            untimed = [t for t in sorted_plan if not t.start_time]
+
+            def _plan_rows(tasks):
+                return [
+                    {
+                        "Pet": t.pet_name,
+                        "Task": t.name,
+                        "Start": t.start_time or "—",
+                        "Duration (min)": t.duration_minutes,
+                        "Priority": t.priority,
+                        "Recurrence": t.recurrence,
+                    }
+                    for t in tasks
+                ]
+
+            if timed:
+                st.write("**Scheduled tasks (by clock time):**")
+                st.table(_plan_rows(timed))
+
+            if untimed:
+                st.write("**Flexible tasks (no fixed start time):**")
+                st.table(_plan_rows(untimed))
+
         else:
             st.error("No tasks could fit in the available time.")
 
+        # --- Excluded tasks ---
         if plan.excluded:
-            st.write("**Could not fit:**")
+            st.warning(f"{len(plan.excluded)} task(s) could not fit today:")
             for task, reason in plan.excluded:
-                st.write(f"- **{task.name}** ({task.pet_name}): {reason}")
+                st.warning(f"**{task.name}** ({task.pet_name}): {reason}")

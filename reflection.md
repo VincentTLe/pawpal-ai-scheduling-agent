@@ -26,54 +26,8 @@ I chose four classes, each with a single clear responsibility:
 | **Scheduler** | The planning brain. Takes a flat task list and produces a daily schedule by sorting on priority/duration, filtering by pet if needed, and flagging any time conflicts. |
 
 ```mermaid
-classDiagram
-    class ScheduleResult {
-        +List~Task~ scheduled
-        +List~Tuple~ excluded
-    }
 
-    class Task {
-        +String name
-        +int duration_minutes
-        +String pet_name
-        +String priority
-        +String status
-        +mark_complete() void
-        +update(name, duration, priority) void
-    }
 
-    class Pet {
-        +String name
-        +String species
-        +String health_notes
-        +List~Task~ tasks
-        +add_task(task: Task) void
-        +get_tasks() List~Task~
-    }
-
-    class Owner {
-        +String name
-        +String contact_info
-        +List~Pet~ pets
-        +add_pet(pet: Pet) void
-        +get_all_tasks() List~Task~
-    }
-
-    class Scheduler {
-        +int available_minutes
-        +sort_by_priority(tasks: List~Task~) List~Task~
-        +sort_by_duration(tasks: List~Task~) List~Task~
-        +filter_by_pet(tasks: List~Task~, pet: Pet) List~Task~
-        +check_conflicts(tasks: List~Task~) List~String~
-        +generate_plan(tasks: List~Task~) ScheduleResult
-    }
-
-    Owner "1" --> "1..*" Pet : owns
-    Pet  "1" --> "0..*" Task : has
-    Scheduler ..> Task : uses
-    Scheduler ..> Owner : uses
-    Scheduler ..> ScheduleResult : returns
-```
 
 **b. Design changes**
 
@@ -164,3 +118,13 @@ A true optimal solution would require solving the 0/1 knapsack problem (NP-hard)
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+---
+
+## 📸 Demo
+
+<a href="/course_images/ai110/Screenshot 2026-03-30 012722.png" target="_blank"><img src='/course_images/ai110/Screenshot 2026-03-30 012722.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
+<a href="/course_images/ai110/Screenshot 2026-03-30 012736.png" target="_blank"><img src='/course_images/ai110/Screenshot 2026-03-30 012736.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
+<a href="/course_images/ai110/Screenshot 2026-03-30 012741.png" target="_blank"><img src='/course_images/ai110/Screenshot 2026-03-30 012741.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
