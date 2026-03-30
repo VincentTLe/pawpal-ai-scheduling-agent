@@ -5,6 +5,15 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+
+The system is designed around three core actions a user needs to perform:
+
+1. **Add a pet to the system.** The user enters basic information about themselves and their pet (such as the pet's name, species, and any relevant health notes). This gives the app the context it needs to personalize care recommendations and store tasks associated with that specific pet.
+
+2. **Add and manage care tasks.** The user can create individual care tasks — such as a morning walk, medication, feeding, or grooming — and assign each task a duration (in minutes) and a priority level. This lets the system understand what needs to happen and how urgently, so it can make sensible scheduling decisions even when time is limited.
+
+3. **Generate and view a daily care plan.** The user requests a daily schedule, and the app produces an ordered plan of tasks based on the available time and each task's priority. The plan is displayed clearly, with an explanation of why tasks were included or excluded, so the owner understands the reasoning and can trust the schedule.
+
 - What classes did you include, and what responsibilities did you assign to each?
 
 **b. Design changes**
