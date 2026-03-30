@@ -16,10 +16,76 @@ The system is designed around three core actions a user needs to perform:
 
 - What classes did you include, and what responsibilities did you assign to each?
 
+I chose four classes, each with a single clear responsibility:
+
+| Class | Responsibility |
+|---|---|
+| **Task** | Holds all data for a single care item (name, duration, priority, status) and knows how to mark itself complete or update its fields. |
+| **Pet** | Represents one animal. Owns a list of Tasks and exposes methods to add a new task or retrieve the current task list. |
+| **Owner** | Represents the person using the app. Owns a list of Pets and can add a new pet or collect every task across all pets into one flat list. |
+| **Scheduler** | The planning brain. Takes a flat task list and produces a daily schedule by sorting on priority/duration, filtering by pet if needed, and flagging any time conflicts. |
+
+```mermaid
+classDiagram
+    class ScheduleResult {
+        +List~Task~ scheduled
+        +List~Tuple~ excluded
+    }
+
+    class Task {
+        +String name
+        +int duration_minutes
+        +String pet_name
+        +String priority
+        +String status
+        +mark_complete() void
+        +update(name, duration, priority) void
+    }
+
+    class Pet {
+        +String name
+        +String species
+        +String health_notes
+        +List~Task~ tasks
+        +add_task(task: Task) void
+        +get_tasks() List~Task~
+    }
+
+    class Owner {
+        +String name
+        +String contact_info
+        +List~Pet~ pets
+        +add_pet(pet: Pet) void
+        +get_all_tasks() List~Task~
+    }
+
+    class Scheduler {
+        +int available_minutes
+        +sort_by_priority(tasks: List~Task~) List~Task~
+        +sort_by_duration(tasks: List~Task~) List~Task~
+        +filter_by_pet(tasks: List~Task~, pet: Pet) List~Task~
+        +check_conflicts(tasks: List~Task~) List~String~
+        +generate_plan(tasks: List~Task~) ScheduleResult
+    }
+
+    Owner "1" --> "1..*" Pet : owns
+    Pet  "1" --> "0..*" Task : has
+    Scheduler ..> Task : uses
+    Scheduler ..> Owner : uses
+    Scheduler ..> ScheduleResult : returns
+```
+
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+Yes, reviewing the skeleton against the README revealed two gaps that required changes before implementation began:
+
+**Change 1 — Added `pet_name: str` to `Task`**
+
+The original `Task` dataclass had no field linking it back to its pet. `Scheduler.filter_by_pet()` accepts a flat task list and a `Pet` object, but without a `pet_name` on each task there was no way to filter without cross-referencing every `pet.tasks` list. Adding `pet_name` as a field on `Task` makes filtering a simple string comparison and removes the hidden dependency on object identity.
+
+**Change 2 — Added `ScheduleResult` dataclass; changed `generate_plan` return type**
+
+The original `generate_plan` returned `list[Task]` (only the scheduled tasks). The README explicitly says the app should *explain why* it chose the plan. Returning a plain list silently discards all reasoning. A new `ScheduleResult` dataclass was introduced to hold both `scheduled: list[Task]` and `excluded: list[tuple[Task, str]]` (each excluded task paired with a human-readable reason). `generate_plan` now returns a `ScheduleResult` so the UI layer can display the full explanation.
 
 ---
 

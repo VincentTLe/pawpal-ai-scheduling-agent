@@ -12,6 +12,22 @@ from typing import Literal
 
 
 # ---------------------------------------------------------------------------
+# ScheduleResult  (added after design review)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ScheduleResult:
+    """
+    Returned by Scheduler.generate_plan().
+    Separates scheduled tasks from excluded ones and carries human-readable
+    reasons for exclusions — fulfilling the README requirement to explain the plan.
+    """
+
+    scheduled: list["Task"] = field(default_factory=list)
+    excluded: list[tuple["Task", str]] = field(default_factory=list)  # (task, reason)
+
+
+# ---------------------------------------------------------------------------
 # Task
 # ---------------------------------------------------------------------------
 
@@ -21,6 +37,7 @@ class Task:
 
     name: str
     duration_minutes: int
+    pet_name: str = ""          # added: lets Scheduler.filter_by_pet work on a flat list
     priority: Literal["high", "medium", "low"] = "medium"
     status: Literal["pending", "completed"] = "pending"
 
@@ -113,10 +130,11 @@ class Scheduler:
         """
         pass
 
-    def generate_plan(self, tasks: list[Task]) -> list[Task]:
+    def generate_plan(self, tasks: list[Task]) -> ScheduleResult:
         """
         Produce an ordered daily plan that fits within available_minutes.
         High-priority tasks are included first; lower-priority tasks fill
-        remaining time. Returns the final list of scheduled tasks.
+        remaining time.
+        Returns a ScheduleResult with scheduled tasks and excluded tasks+reasons.
         """
         pass
