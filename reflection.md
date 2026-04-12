@@ -128,7 +128,7 @@ These tests mattered because the scheduler's correctness is the core promise of 
 
 I am confident the scheduler handles the common cases correctly. The priority map and greedy sort are simple enough to reason about by inspection, and the manual tests I ran covered the main paths.
 
-Edge cases I would test next with more time:
+Edge cases I would test next with more time:   
 - **Exact fit** — a task whose duration equals the remaining time exactly (off-by-one risk).
 - **All tasks same priority** — ensure duration tiebreaking is stable.
 - **Zero available time** — should return an empty plan, not an error.
