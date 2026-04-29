@@ -196,14 +196,15 @@ If submitting screenshots instead of video, include the following test cases:
 - agent_decision: Ready for scheduler
 - Retrieved RAG context from dog_care.md
 
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
-![alt text](image-3.png)
-![alt text](image-4.png)
-![alt text](image-5.png)
-![alt text](image-7.png)
-![alt text](image-8.png)
+![Test case 1 screenshot 1](image.png)
+![Test case 1 screenshot 2](image-1.png)
+![Test case 1 screenshot 3](image-2.png)
+![Test case 1 screenshot 4](image-3.png)
+![Test case 1 screenshot 5](image-4.png)
+![Test case 1 screenshot 6](image-5.png)
+![Test case 1 screenshot 7](image-6.png)
+![Test case 1 screenshot 8](image-7.png)
+![Test case 1 screenshot 9](image-8.png)
 
 #### Test Case 2️⃣: Medical Warning (Guardrails)
 **Input:** `"My dog needs his antibiotic medication for an infected wound."`
@@ -212,12 +213,10 @@ If submitting screenshots instead of video, include the following test cases:
 - Yellow warning: "This app is for scheduling support only..."
 - Medical disclaimer appears due to keywords: antibiotic, medication, wound
 
-[Paste screenshot URL or relative path here]
-
-![alt text](image-9.png)
-![alt text](image-10.png)
-![alt text](image-11.png)
-![alt text](image-12.png)
+![Test case 2 screenshot 1](image-9.png)
+![Test case 2 screenshot 2](image-10.png)
+![Test case 2 screenshot 3](image-11.png)
+![Test case 2 screenshot 4](image-12.png)
 
 #### Test Case 3️⃣: Emergency Alert (Guardrails)
 **Input:** `"Help, my dog is having a severe seizure and is bleeding."`
@@ -226,10 +225,9 @@ If submitting screenshots instead of video, include the following test cases:
 - Red emergency warning: "Please contact a veterinarian or emergency clinic immediately."
 - Emergency keywords detected: seizure, bleeding
 
-[Paste screenshot URL or relative path here]
-![alt text](image-13.png)
-![alt text](image-14.png)
-![alt text](image-15.png)
+![Test case 3 screenshot 1](image-13.png)
+![Test case 3 screenshot 2](image-14.png)
+![Test case 3 screenshot 3](image-15.png)
 
 #### Test Case 4: Multi-Pet Prioritization Under Time Limit
 **Input:** `"I have two pets: a dog named Max and a cat named Luna. I only have 50 minutes today. Max needs a 30-minute walk, feeding, and playtime. Luna needs feeding, litter box cleaning, and 20 minutes of grooming. Feeding and litter cleaning are high priority; grooming is low priority."`
@@ -241,8 +239,7 @@ If submitting screenshots instead of video, include the following test cases:
 - At least one lower-priority or longer task may be skipped if it does not fit
 - Final schedule includes tasks for both Max and Luna when possible
 
-[Paste screenshot URL or relative path here]
-![alt text](image-16.png)
-![alt text](image-17.png)
-![alt text](image-18.png)
-![alt text](image-19.png)
+![Test case 4 screenshot 1](image-16.png)
+![Test case 4 screenshot 2](image-17.png)
+![Test case 4 screenshot 3](image-18.png)
+![Test case 4 screenshot 4](image-19.png)
