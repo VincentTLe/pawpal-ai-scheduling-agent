@@ -98,6 +98,7 @@ PawPal should recommend contacting a veterinarian or emergency clinic if the use
 - Severe vomiting
 - Severe injury
 - Extreme lethargy
+
 - Unusual behavior that does not improve
 
 PawPal should not diagnose disease, prescribe treatment, or recommend medication dosage.
