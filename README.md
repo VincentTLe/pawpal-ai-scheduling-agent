@@ -187,6 +187,7 @@ If submitting screenshots instead of video, include the following test cases:
 #### Test Case 1️⃣: Normal Request (Gemini Parsing + RAG)
 **Input:** `"I have a Golden Retriever. He needs a 30-minute daily walk at high priority, and a 15-minute grooming session at medium priority."`
 
+
 **Screenshot shows:**
 - Agent steps successfully executed
 - retrieve_context: Retrieved 3 relevant knowledge chunks
@@ -195,7 +196,14 @@ If submitting screenshots instead of video, include the following test cases:
 - agent_decision: Ready for scheduler
 - Retrieved RAG context from dog_care.md
 
-[Paste screenshot URL or relative path here]
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
+![alt text](image-4.png)
+![alt text](image-5.png)
+![alt text](image-7.png)
+![alt text](image-8.png)
 
 #### Test Case 2️⃣: Medical Warning (Guardrails)
 **Input:** `"My dog needs his antibiotic medication for an infected wound."`
@@ -206,6 +214,11 @@ If submitting screenshots instead of video, include the following test cases:
 
 [Paste screenshot URL or relative path here]
 
+![alt text](image-9.png)
+![alt text](image-10.png)
+![alt text](image-11.png)
+![alt text](image-12.png)
+
 #### Test Case 3️⃣: Emergency Alert (Guardrails)
 **Input:** `"Help, my dog is having a severe seizure and is bleeding."`
 
@@ -214,22 +227,22 @@ If submitting screenshots instead of video, include the following test cases:
 - Emergency keywords detected: seizure, bleeding
 
 [Paste screenshot URL or relative path here]
+![alt text](image-13.png)
+![alt text](image-14.png)
+![alt text](image-15.png)
 
-#### Test Case 4️⃣: Fallback Parser (No API)
-**Input:** `"Task: dog walking, duration: 30, priority: high"`
+#### Test Case 4: Multi-Pet Prioritization Under Time Limit
+**Input:** `"I have two pets: a dog named Max and a cat named Luna. I only have 50 minutes today. Max needs a 30-minute walk, feeding, and playtime. Luna needs feeding, litter box cleaning, and 20 minutes of grooming. Feeding and litter cleaning are high priority; grooming is low priority."`
 
-**Screenshot shows:**
-- App continues without Gemini (API key missing or API fails)
-- Deterministic regex parser handles the structured input
-- Schedule generated successfully using fallback
-
-[Paste screenshot URL or relative path here]
-
-#### Test Case 5️⃣: Unit Tests (41/41 Passing)
-**Terminal output:** `python -m pytest`
-
-**Screenshot shows:**
-- All 41 tests pass (green output)
-- Covers: Retriever, Guardrails, Logger, PawPal, Scheduler Adapter, and AI Agent
+**Screenshot should show:**
+- Gemini parses multiple pets and multiple tasks into structured JSON
+- High-priority feeding and litter cleaning tasks appear before lower-priority grooming
+- The scheduler fits the most important tasks within the 50-minute limit
+- At least one lower-priority or longer task may be skipped if it does not fit
+- Final schedule includes tasks for both Max and Luna when possible
 
 [Paste screenshot URL or relative path here]
+![alt text](image-16.png)
+![alt text](image-17.png)
+![alt text](image-18.png)
+![alt text](image-19.png)
