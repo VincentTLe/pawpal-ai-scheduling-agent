@@ -1,0 +1,26 @@
+flowchart TD
+    A[User Natural Language Request] --> B[Streamlit UI]
+    B --> C[Agent Controller]
+
+    C --> D[RAG Retriever]
+    D --> E[Local Pet-Care Knowledge Base]
+    E --> D
+
+    C --> F[Gemini Parser]
+    F --> G[Structured Task JSON]
+    C --> O[Deterministic Parser Fallback]
+    O --> G
+
+    G --> H[Guardrails and Validation]
+    H --> I[Scheduler Adapter]
+    I --> J[PawPal Scheduler]
+    J --> K[Final Daily Care Plan]
+
+    H --> L[Warnings and Safety Disclaimers]
+    B --> M[JSONL Logger]
+
+    N[Pytest Unit Tests] --> D
+    N --> H
+    N --> I
+    P[Evaluation Script] --> C
+    P --> I

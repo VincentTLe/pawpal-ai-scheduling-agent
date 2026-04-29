@@ -1,6 +1,15 @@
 import streamlit as st
 from datetime import date
+import os
+from dotenv import load_dotenv
+
+# Load env variables from .env file
+load_dotenv()
+
+from ai_agent import run_agent
+from logger import log_run
 from pawpal_system import Owner, Pet, Task, Scheduler
+from scheduler_adapter import schedule_structured_plan
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -233,3 +242,96 @@ if st.button("Generate schedule"):
             st.warning(f"{len(plan.excluded)} task(s) could not fit today:")
             for task, reason in plan.excluded:
                 st.warning(f"**{task.name}** ({task.pet_name}): {reason}")
+
+st.divider()
+
+# ---------------------------------------------------------------------------
+# Section 5 - PawPal AI Agent
+# ---------------------------------------------------------------------------
+st.subheader("5. PawPal AI Agent")
+st.caption("Describe a pet-care situation and let the agent retrieve context, parse tasks, validate safety, and schedule the plan.")
+
+agent_request = st.text_area(
+    "Describe your pet-care situation",
+    placeholder=(
+        "Example: I have a dog named Max. I have 45 minutes today. "
+        "He needs medicine, feeding, walking, and grooming."
+    ),
+)
+
+if st.button("Generate AI care plan"):
+    if not agent_request.strip():
+        st.warning("Enter a pet-care request first.")
+    else:
+        agent_result = run_agent(agent_request)
+        schedule_result = None
+
+        st.write("**Agent steps**")
+        for step in agent_result.steps:
+            st.write(f"- **{step.name}** - {step.status}: {step.details}")
+
+        st.write("**Retrieved RAG context**")
+        if agent_result.retrieved_context:
+            for chunk in agent_result.retrieved_context:
+                st.info(
+                    f"{chunk['source']} - {chunk['heading']} "
+                    f"(score: {chunk['score']})\n\n{chunk['text']}"
+                )
+        else:
+            st.info("No relevant knowledge chunks were retrieved.")
+
+        st.write("**Structured plan**")
+        st.json(agent_result.structured_plan)
+
+        if agent_result.warnings:
+            st.warning("Guardrail warnings")
+            for warning in agent_result.warnings:
+                st.write(f"- {warning}")
+
+        if agent_result.errors:
+            st.error("Guardrail errors")
+            for error in agent_result.errors:
+                st.write(f"- {error}")
+
+        if agent_result.is_valid:
+            schedule_result = schedule_structured_plan(agent_result.structured_plan)
+
+            st.write("**Final PawPal schedule**")
+            st.success(schedule_result["summary"])
+
+            if schedule_result["scheduled_tasks"]:
+                st.write("Scheduled tasks")
+                st.table(schedule_result["scheduled_tasks"])
+
+            if schedule_result["skipped_tasks"]:
+                st.warning("Skipped tasks")
+                st.table(schedule_result["skipped_tasks"])
+
+            if schedule_result["conflicts"]:
+                st.warning("Scheduler conflicts")
+                for conflict in schedule_result["conflicts"]:
+                    st.write(f"- {conflict}")
+        else:
+            st.info("The scheduler was not run because guardrails found blocking errors.")
+
+        log_run(
+            user_input=agent_request,
+            result_status="success" if agent_result.is_valid else "failed",
+            details={
+                "errors": agent_result.errors,
+                "warnings": agent_result.warnings,
+                "retrieved_sources": [
+                    chunk["source"] for chunk in agent_result.retrieved_context
+                ],
+                "scheduled_count": (
+                    len(schedule_result["scheduled_tasks"])
+                    if schedule_result is not None
+                    else 0
+                ),
+                "skipped_count": (
+                    len(schedule_result["skipped_tasks"])
+                    if schedule_result is not None
+                    else 0
+                ),
+            },
+        )

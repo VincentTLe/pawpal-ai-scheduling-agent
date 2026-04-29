@@ -1,169 +1,179 @@
-# PawPal+
+# PawPal AI Pet-Care Scheduling Agent
 
-**A daily pet-care planner powered by intelligent scheduling.**
+PawPal AI turns natural-language pet-care requests into safe, prioritized daily schedules. It combines retrieval over local pet-care notes, a Gemini-backed parser with deterministic fallback, guardrails for medical and emergency language, and the original PawPal deterministic scheduler.
 
-PawPal+ helps busy pet owners stay consistent with animal care. Enter your pets and their tasks, tell the app how much time you have today, and it generates a priority-ordered plan — complete with conflict warnings and automatic recurrence tracking.
+## Original Project
 
----
+This project extends **PawPal+**, a Python and Streamlit pet-care scheduling app from Module 2. The original app let users add owners, pets, and care tasks, then generated a daily schedule using deterministic priority, duration, recurrence, and conflict-detection logic.
 
-## 📸 Demo
+## Final System Summary
 
-**Owner & Pet Setup**
-<a href="/course_images/ai110/pawpal_screenshot_1.png" target="_blank"><img src='/course_images/ai110/pawpal_screenshot_1.png' title='PawPal App - Owner and Pet Setup' width='' alt='PawPal App - Owner and Pet Setup' class='center-block' /></a>
+The final version adds an applied AI workflow on top of the scheduler:
 
-**Task Management**
-<a href="/course_images/ai110/pawpal_screenshot_2.png" target="_blank"><img src='/course_images/ai110/pawpal_screenshot_2.png' title='PawPal App - Task Management' width='' alt='PawPal App - Task Management' class='center-block' /></a>
-
-**Generated Schedule & Conflict Warnings**
-<a href="/course_images/ai110/pawpal_screenshot_3.png" target="_blank"><img src='/course_images/ai110/pawpal_screenshot_3.png' title='PawPal App - Schedule' width='' alt='PawPal App - Schedule' class='center-block' /></a>
-
----
-
-## Features
-
-### Owner & Multi-Pet Management
-Create an owner profile and register as many pets as you like (dog, cat, bird, rabbit, or other). Each pet carries its own health notes and task list. Tasks from all pets are automatically aggregated when generating the schedule.
-
-### Task Creation with Rich Metadata
-Every task stores:
-- **Name** and **duration** (minutes)
-- **Priority** — `high`, `medium`, or `low`
-- **Time-of-day slot** — `morning`, `afternoon`, `evening`, or `anytime`
-- **Start time** — optional HH:MM clock time (e.g. `07:30`)
-- **Recurrence** — `none`, `daily`, or `weekly`
-
-### Priority-Aware Daily Scheduling
-`Scheduler.generate_plan()` sorts pending tasks by:
-1. **Priority** — `high` before `medium` before `low`
-2. **Time-of-day slot** — `morning` → `afternoon` → `evening` → `anytime`
-3. **Duration** — shortest first as a tiebreaker (maximises tasks completed)
-
-It greedily fills the available time window and returns a `ScheduleResult` with both the scheduled tasks and every excluded task paired with a plain-English reason explaining why it was dropped.
-
-### Sorting by Time (HH:MM Clock Sort)
-`Scheduler.sort_by_time()` orders tasks by their `start_time` field using zero-padded string comparison. Tasks without a start time automatically sink to the end, so the display always shows a clean chronological to-do list followed by flexible items.
-
-### Sorting by Time-of-Day Slot
-`Scheduler.sort_by_time_of_day()` orders tasks by their day-part slot (`morning` → `afternoon` → `evening` → `anytime`) — useful for viewing the full task list in a natural daily rhythm independent of clock times.
-
-### Daily & Weekly Recurrence
-`Scheduler.complete_task()` marks a task done then calls `Task.spawn_next()` to create a fresh copy automatically:
-- **Daily** — `due_date` advances by 1 day
-- **Weekly** — `due_date` advances by 7 days
-- **None** — no copy is created
-
-The new occurrence is added directly to the pet's task list. No manual re-entry required.
-
-### Conflict Warnings
-`Scheduler.check_conflicts()` runs four independent checks and returns human-readable warnings:
-
-| Check | What it catches |
-|---|---|
-| **Total time overflow** | All pending tasks together exceed the available window |
-| **Single task too long** | One task alone is longer than the entire available window |
-| **High-priority tasks at risk** | High-priority tasks combined exceed available time — some will be dropped |
-| **Time-window overlaps** | Two tasks whose `start_time + duration` windows collide |
-
-### Time-Overlap Detection
-`Scheduler.detect_time_overlaps()` uses a **sort-then-sweep** algorithm (O(n log n)) to find every pair of pending tasks whose scheduled windows overlap. Tasks are sorted by start time once; for each task only forward neighbours are checked, and the inner loop breaks the moment a non-overlapping task is reached — making it efficient even for long task lists.
-
-### Status Filtering (Pending / Completed Tabs)
-`Scheduler.filter_by_status()` returns only `pending` or `completed` tasks. The UI uses this to power separate tabs so owners can instantly see what's left today versus what's already done.
-
----
+- RAG retriever over local markdown knowledge files in `knowledge/`
+- Gemini structured-output parser when `GEMINI_API_KEY` is available
+- Deterministic fallback parser when Gemini is unavailable
+- Guardrails for invalid plans, medical language, and emergency language
+- Scheduler adapter that converts AI JSON into PawPal `Owner`, `Pet`, and `Task` objects
+- JSONL logging in `logs/pawpal_runs.jsonl`
+- Pytest unit tests and `eval_cases.py` reliability harness
 
 ## Architecture
 
-```
-pawpal_system.py   — backend logic (Task, Pet, Owner, Scheduler, ScheduleResult)
-app.py             — Streamlit UI; imports from pawpal_system only
-```
+![PawPal AI architecture](assets/architecture.png)
 
-| Class | Responsibility |
-|---|---|
-| `Task` | Holds care-item data; marks itself complete, updates fields, spawns next recurrence |
-| `Pet` | Owns a list of Tasks; auto-stamps each task with the pet's name on add |
-| `Owner` | Owns a list of Pets; aggregates all tasks across pets into one flat list |
-| `Scheduler` | Planning brain — sorts, filters, detects conflicts, generates the daily plan |
-| `ScheduleResult` | Return value of `generate_plan`: scheduled tasks + excluded tasks with reasons |
+Data flow:
 
----
+1. The user enters a natural-language pet-care request in Streamlit.
+2. The agent retrieves relevant local pet-care context.
+3. Gemini parses the request into structured JSON, or the fallback parser does so deterministically.
+4. Guardrails validate the plan and add safety warnings.
+5. The scheduler adapter converts JSON into PawPal system objects.
+6. The deterministic scheduler produces the final care plan.
+7. The app logs the run and displays agent steps, context, warnings, and schedule output.
 
-## Getting Started
-
-### Setup
+## Setup
 
 ```bash
 python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS / Linux:
-source .venv/bin/activate
+```
 
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+macOS / Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Run
+## Environment Variables
+
+Gemini is optional. Without an API key, the app still works through the deterministic parser.
+
+```bash
+set GEMINI_API_KEY=your_key_here
+```
+
+PowerShell:
+
+```powershell
+$env:GEMINI_API_KEY="your_key_here"
+```
+
+## Run The App
 
 ```bash
 streamlit run app.py
 ```
 
-Open `http://localhost:8501` in your browser.
+Open `http://localhost:8501`.
 
----
-
-## Testing PawPal+
+## Run Tests
 
 ```bash
 python -m pytest
 ```
 
-### What the tests cover
+## Run Evaluation
 
-| Category | Tests | Description |
-|---|---|---|
-| **Task lifecycle** | `test_mark_complete_*`, `test_update_changes_fields` | Verifies that `mark_complete()` flips status to `completed` (and is idempotent), and that `update()` only overwrites supplied fields |
-| **Pet task management** | `test_add_task_*` | Confirms that adding tasks increases the pet's task list, auto-stamps the pet name on each task, and supports multiple tasks |
-| **Scheduler — basic plan** | `test_generate_plan_*`, `test_completed_tasks_excluded_*` | Checks that the generated plan respects `available_minutes`, orders tasks high → medium → low priority, and skips already-completed tasks |
-| **Owner aggregation** | `test_owner_get_all_tasks_*` | Ensures `Owner.get_all_tasks()` combines tasks from all pets |
-| **Time sorting** | `test_sort_by_time_*` | Validates chronological HH:MM ordering and that tasks without a `start_time` sink to the end |
-| **Recurrence spawning** | `test_complete_daily_*`, `test_complete_weekly_*`, `test_complete_nonrecurring_*` | Confirms daily tasks advance `due_date` by 1 day, weekly by 7 days, and non-recurring tasks spawn nothing |
-| **Overlap detection** | `test_detect_overlap_*`, `test_no_overlap_*`, `test_completed_tasks_ignored_*` | Verifies the sweep algorithm catches same-start and partial overlaps, allows back-to-back tasks, and ignores completed tasks |
-
-**Total: 20 unit tests** across `Task`, `Pet`, `Owner`, and `Scheduler`.
-
-**Confidence: ★★★★☆ (4/5)** — core scheduling paths are thoroughly covered by focused, deterministic tests. A fifth star would require additional edge-case coverage (empty task lists, invalid inputs, boundary conditions on available time).
-
----
-
-## Project Files
-
-```
-ai110-module2show-pawpal-starter/
-├── app.py               # Streamlit front-end
-├── pawpal_system.py     # Backend logic layer
-├── test_pawpal.py       # Pytest unit tests (20 tests)
-├── uml_final.mmd        # Final UML diagram source (Mermaid)
-├── uml_final.png        # Final UML diagram (rendered)
-├── reflection.md        # Design decisions & AI collaboration notes
-├── requirements.txt
-└── README.md
+```bash
+python eval_cases.py
 ```
 
----
+Expected output ends with a summary like:
 
-## Algorithm Summary
+```text
+PawPal AI Evaluation Summary
+...
+5 / 5 cases passed
+```
 
-| Feature | Method | Complexity |
-|---|---|---|
-| Priority + time-of-day + duration sort | `generate_plan` | O(n log n) |
-| Clock-time sort (HH:MM) | `sort_by_time` | O(n log n) |
-| Time-of-day slot sort | `sort_by_time_of_day` | O(n log n) |
-| Priority sort | `sort_by_priority` | O(n log n) |
-| Duration sort | `sort_by_duration` | O(n log n) |
-| Status filtering | `filter_by_status` | O(n) |
-| Per-pet filtering | `filter_by_pet` | O(n) |
-| Time-overlap detection (sort-then-sweep) | `detect_time_overlaps` | O(n log n) |
-| Multi-level conflict check | `check_conflicts` | O(n log n) |
-| Recurrence spawning | `complete_task` / `spawn_next` | O(1) per task |
+## Sample Interactions
+
+### Example 1: Normal Schedule
+
+Input:
+
+```text
+I have a dog named Max. I have 45 minutes today. He needs feeding and walking.
+```
+
+Expected behavior:
+
+- Retrieves dog feeding/walking context
+- Parses tasks for feeding and walking
+- Schedules both tasks if they fit within 45 minutes
+
+### Example 2: Medication Warning
+
+Input:
+
+```text
+My dog Luna needs medicine and feeding. I have 30 minutes.
+```
+
+Expected behavior:
+
+- Prioritizes medication and feeding
+- Shows a veterinary disclaimer
+- Produces a deterministic schedule from the structured plan
+
+### Example 3: Emergency Language
+
+Input:
+
+```text
+My cat had a seizure and needs help.
+```
+
+Expected behavior:
+
+- Shows emergency and veterinary warnings
+- Avoids diagnosis, dosage, or treatment advice
+- Treats the app as scheduling support only
+
+## Design Decisions
+
+- The scheduler remains deterministic because task ordering and time limits should be explainable and testable.
+- Gemini only handles language-to-JSON parsing; it does not decide the final schedule.
+- The fallback parser keeps the app reproducible for graders and users without API access.
+- RAG uses local markdown and keyword scoring instead of a vector database to keep setup simple.
+- Guardrails check both the structured plan and raw user input so safety-sensitive words are not lost during parsing.
+
+## Testing Summary
+
+The test suite covers:
+
+- Core PawPal classes and scheduler behavior
+- Retriever chunk preview and keyword retrieval behavior
+- Guardrail validation and safety warnings
+- Gemini fallback behavior and observable agent steps
+- Scheduler adapter output
+- JSONL logger behavior
+
+The evaluation harness runs five end-to-end cases: normal dog care, medication warning, cat litter cleaning, emergency warning, and limited-time prioritization.
+
+## Limitations
+
+- This is not veterinary software and must not be used for diagnosis, dosage, treatment, or emergencies.
+- The fallback parser is keyword-based and may miss unusual phrasing.
+- The local RAG knowledge base is intentionally small and should be reviewed before real-world use.
+- Gemini output is validated, but model behavior can still vary when the API is enabled.
+
+## Loom Demo
+
+Add the final Loom walkthrough link here before submission:
+
+```text
+TODO: paste Loom demo link
+```

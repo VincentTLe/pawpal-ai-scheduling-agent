@@ -1,0 +1,1 @@
+{"timestamp": "2026-04-29T06:56:02.663714+00:00", "user_input": "I have a Golden Retriever. He needs a 30-minute daily walk at high priority, and a 15-minute grooming session at medium priority.\n\n", "status": "success", "details": {"errors": [], "warnings": [], "retrieved_sources": ["dog_care.md", "dog_care.md", "cat_care.md"], "scheduled_count": 1, "skipped_count": 1}}
